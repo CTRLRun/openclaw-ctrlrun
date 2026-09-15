@@ -84,6 +84,9 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: bridge/dist
+          # A version that is already up is not a failure; a re-run after a half-failed
+          # release should be able to finish the other half.
+          skip-existing: true
 
   npm:
     name: plugin to npm
@@ -94,15 +97,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # Trusted publishing needs npm >= 11.5.1 on Node >= 22.14.0. Node 24 ships npm 11.x.
+      # Deliberately no `registry-url`. It writes an .npmrc line expecting NODE_AUTH_TOKEN,
+      # and an empty token is still a credential: npm sends it and never reaches the OIDC
+      # exchange. The failure is a 404 on the PUT, which reads like a missing package rather
+      # than a rejected identity.
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-          registry-url: "https://registry.npmjs.org"
 
       - name: npm is new enough to publish over OIDC
         run: |
+          npm install -g npm@latest
           node --version
           npm --version
+          test -z "${NODE_AUTH_TOKEN:-}" || (echo "a token is set; OIDC would be bypassed" && exit 1)
           node -e "const [a,b,c]=process.versions.node.split('.').map(Number);if(a<22||(a===22&&b<14))throw new Error('node too old for trusted publishing')"
 
       - name: The tag matches the version in package.json
@@ -134,4 +142,4 @@ jobs:
       # No NODE_AUTH_TOKEN. The OIDC identity above is the credential.
       - name: Publish
         working-directory: plugin
-        run: npm publish --access public
+        run: npm publish --provenance --access public
