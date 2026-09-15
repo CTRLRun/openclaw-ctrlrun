@@ -100,8 +100,23 @@ $ openclaw gateway
 ```
 
 That last line is the `gateway_start` hook reading `/v1/health` off the bridge, so it is the
-host's own log saying the gate is live and which policy it loaded. `before_tool_call` firing
-on a real tool call is not yet exercised here: that needs a configured model provider.
+host's own log saying the gate is live and which policy it loaded.
+
+A real agent turn, with the host calling `read`, drives the whole loop. Both hooks fire, 29ms
+apart, and the receipt chain carries what happened:
+
+```
+$ openclaw agent --local -m "read the file /tmp/ctrlrun-probe.txt"
+[bridge] "POST /v1/decide"    200
+[bridge] "POST /v1/outcome"   200
+
+$ ctrlrun receipts
+read  deny/denied      openclaw-gateway   # policy did not name this action
+read  allow/committed  openclaw-gateway   # allowed, ran, after_tool_call reported
+```
+
+The first row is the same turn before `read` was added to the policy: nothing is default-allow,
+so the host's own tool was refused and the refusal is in the chain with a principal attached.
 
 Two things the host taught us that the docs do not:
 
