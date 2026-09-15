@@ -1,3 +1,15 @@
+# Filed as openclaw#149454
+
+https://github.com/openclaw/openclaw/issues/149454
+
+The proposal was refined in a follow-up comment after reading the implementation:
+`notifyPluginApprovalResolution` does **not** await the callback, so widening `onResolution`'s
+return type is not additive. The shape now on the table is a separate opt-in
+`onResolutionDecide`, awaited only on a granting decision, which leaves every existing plugin
+untouched.
+
+---
+
 ### Summary
 
 `PluginHookBeforeToolCallResult.requireApproval.onResolution` returns `Promise<void> | void`. Once the operator answers `allow-once`, the tool executes. A plugin that learns at resolution time that the call must not proceed has no way to say so.
