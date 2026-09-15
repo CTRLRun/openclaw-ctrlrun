@@ -1,0 +1,84 @@
+# SPDX-FileCopyrightText: 2026 The CTRLRun contributors
+# SPDX-License-Identifier: Apache-2.0
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  bridge:
+    name: bridge (python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install
+        working-directory: bridge
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      - name: Test
+        working-directory: bridge
+        run: python -m pytest tests/ -q
+      - name: Lint
+        working-directory: bridge
+        run: python -m ruff check src tests
+
+  plugin:
+    name: plugin (node 24)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Build and test
+        working-directory: plugin
+        run: |
+          npx --yes esbuild@0.25.0 index.ts bridge-client.ts decision.ts decision.test.ts \
+            --format=esm --platform=node --target=node24 --outdir=dist
+          node --test dist/decision.test.js
+
+  packaging:
+    name: the distribution a user actually gets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      # The kernel range in bridge/pyproject.toml is a fact about this tree. Whether the
+      # wheel installs beside a current kernel is a fact about the distribution, and the
+      # two have come apart in this project before.
+      - name: Bridge wheel installs clean and pulls the kernel
+        working-directory: bridge
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build --outdir dist .
+          python -m venv /tmp/smoke
+          /tmp/smoke/bin/pip install dist/*.whl
+          /tmp/smoke/bin/ctrlrun-openclaw-bridge --help > /dev/null
+          /tmp/smoke/bin/pip show ctrlrun | grep -E '^Version'
+      # The host refuses a TypeScript entry for a packaged install, so a tarball without
+      # dist/ is one nobody can install. This catches a missing build, not a typo.
+      - name: Plugin tarball carries the compiled entry the host requires
+        working-directory: plugin
+        run: |
+          npx --yes esbuild@0.25.0 index.ts bridge-client.ts decision.ts \
+            --format=esm --platform=node --target=node24 --outdir=dist
+          npm pack --pack-destination /tmp
+          tar tzf /tmp/ctrlrun-openclaw-*.tgz | tee /tmp/files
+          grep -q 'package/dist/index.js' /tmp/files
+          grep -q 'package/openclaw.plugin.json' /tmp/files

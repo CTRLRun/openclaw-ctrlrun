@@ -34,6 +34,7 @@ from typing import Any, Final
 
 from ctrlrun import Action, NotExecuted
 
+
 #: What the executor raises when the host never said what happened. Anything that is not
 #: `NotExecuted` lands the effect in `AMBIGUOUS` (SPEC-v0.1 §5.5), which is the point.
 class OutcomeNotReported(Exception):
@@ -69,7 +70,9 @@ class Answer:
 class Call:
     """The state of one tool call while `Control.execute` is held open for it."""
 
-    def __init__(self, call_id: str, tool: str, arguments: dict[str, Any], outcome_timeout: float) -> None:
+    def __init__(
+        self, call_id: str, tool: str, arguments: dict[str, Any], outcome_timeout: float
+    ) -> None:
         self.call_id = call_id
         self.tool = tool
         self.arguments = arguments
@@ -134,7 +137,9 @@ class Call:
         answer = self._answers[which]
         return answer if answer is not None else Answer(DENY, reason="ctrlrun_bridge_no_answer")
 
-    def verdict(self, granted: bool, approver: str, approved_arguments: dict[str, Any] | None) -> None:
+    def verdict(
+        self, granted: bool, approver: str, approved_arguments: dict[str, Any] | None
+    ) -> None:
         self._verdict.put((granted, approver, approved_arguments))
 
     def await_verdict(self, timeout: float) -> tuple[bool, str, dict[str, Any] | None]:

@@ -118,6 +118,20 @@ read  allow/committed  openclaw-gateway   # allowed, ran, after_tool_call report
 The first row is the same turn before `read` was added to the policy: nothing is default-allow,
 so the host's own tool was refused and the refusal is in the chain with a principal attached.
 
+Changing the policy to `decision: approve` exercises the third path, with no approver connected:
+
+```
+read  approve/denied  read:/tmp/ctrlrun-probe.txt  openclaw-gateway
+```
+
+The host raised its own approval prompt, nothing could answer it, and OpenClaw failed closed:
+unresolved approvals always deny there. CTRLRun recorded the denial against the effect key and
+reserved nothing, so the next attempt is unaffected. That is both systems failing closed at the
+same time, which is the behaviour you want and is worth seeing once.
+
+The fourth path, an approval a human **grants**, needs an interactive approver attached to the
+Gateway and is not exercised here.
+
 Two things the host taught us that the docs do not:
 
 - A packaged install requires compiled JavaScript at `./dist/index.js`. A TypeScript entry is

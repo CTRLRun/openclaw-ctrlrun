@@ -17,7 +17,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         prog="ctrlrun-openclaw-bridge",
         description="Answer OpenClaw's before_tool_call from a CTRLRun policy.",
     )
-    parser.add_argument("--policy", default=None, help="Policy file. Default: $CTRLRUN_CONFIG, else ./ctrlrun.yaml")
+    parser.add_argument(
+        "--policy", default=None, help="Policy file. Default: $CTRLRUN_CONFIG, else ./ctrlrun.yaml"
+    )
     parser.add_argument(
         "--agent",
         default=None,
@@ -31,7 +33,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--environment", default=None, help="The deployment this bridge acts in.")
     parser.add_argument("--host", default="127.0.0.1", help="Loopback only. Default: 127.0.0.1")
     parser.add_argument("--port", type=int, default=8931, help="Default: 8931")
-    parser.add_argument("--token", default=None, help="Shared secret. Default: $CTRLRUN_OPENCLAW_TOKEN")
+    parser.add_argument(
+        "--token", default=None, help="Shared secret. Default: $CTRLRUN_OPENCLAW_TOKEN"
+    )
     parser.add_argument(
         "--outcome-timeout",
         type=float,
@@ -41,7 +45,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             f"Default: {OUTCOME_TIMEOUT:g}s"
         ),
     )
-    parser.add_argument("--approval-timeout", type=float, default=APPROVAL_TIMEOUT, help="Parked-approval ceiling.")
+    parser.add_argument(
+        "--approval-timeout", type=float, default=APPROVAL_TIMEOUT, help="Parked-approval ceiling."
+    )
     parser.add_argument("--verbose", action="store_true", help="Log every decision.")
     args = parser.parse_args(argv)
 

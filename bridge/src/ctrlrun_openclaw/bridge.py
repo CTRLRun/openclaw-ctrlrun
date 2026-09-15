@@ -35,13 +35,13 @@ from typing import Any, Final
 
 from ctrlrun import (
     Action,
-    context,
     ActionDenied,
     AmbiguousEffect,
     ApprovalRequired,
     Control,
     DuplicateEffect,
     banner,
+    context,
     with_approval,
 )
 from ctrlrun.adapter import InterruptApprovalProvider, PendingApproval
@@ -156,10 +156,10 @@ class Bridge:
         )
         worker.start()
         answer = call.await_answer(0, DECIDE_TIMEOUT)
-        if answer.decision != APPROVAL:
-            # Nothing else will be asked about this call unless it was allowed.
-            if answer.decision == DENY:
-                self._forget(call_id)
+        # A refused call is finished: no outcome and no resolution will be asked about it.
+        # An allowed one is kept for `/v1/outcome`, and an approval for `/v1/resolve`.
+        if answer.decision == DENY:
+            self._forget(call_id)
         return answer.to_dict() | {"callId": call_id}
 
     # -- /v1/resolve -----------------------------------------------------------------
@@ -236,7 +236,7 @@ class Bridge:
                     },
                 )
             )
-        except Exception as exc:  # noqa: BLE001 - the hook fails closed; say why in the log
+        except Exception as exc:
             _LOG.exception("bridge failed deciding %s", call.tool)
             call.publish(Answer(DENY, reason=f"ctrlrun_error: {exc.__class__.__name__}"))
         finally:
@@ -250,9 +250,7 @@ class Bridge:
         the time `wait()` blocks. The grant is written by `InterruptApprovalProvider`, which
         is the same `grant_approval` that `ctrlrun approve` and the webhook call.
         """
-        call.publish(
-            Answer(APPROVAL, request_id=request_id, detail=self._pending(request_id))
-        )
+        call.publish(Answer(APPROVAL, request_id=request_id, detail=self._pending(request_id)))
         try:
             self._control.approvals.wait(request_id, None)
             with self._identity(), with_approval(request_id):
@@ -260,7 +258,7 @@ class Bridge:
                 call.receipt = self._control.execute(call.action, call.executor, call.effect_key)
         except ActionDenied as denied:
             call.publish(Answer(DENY, reason=denied.reason))
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             _LOG.exception("bridge failed resuming %s", call.tool)
             call.publish(Answer(DENY, reason=f"ctrlrun_error: {exc.__class__.__name__}"))
 
@@ -322,7 +320,7 @@ class _Handler(BaseHTTPRequestHandler):
     server_version = "ctrlrun-openclaw"
     bridge: Bridge
 
-    def log_message(self, fmt: str, *args: Any) -> None:  # noqa: A002
+    def log_message(self, fmt: str, *args: Any) -> None:
         _LOG.debug(fmt, *args)
 
     def _send(self, status: int, body: Mapping[str, Any]) -> None:
@@ -333,7 +331,7 @@ class _Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
-    def do_GET(self) -> None:  # noqa: N802
+    def do_GET(self) -> None:
         if self.path != "/v1/health":
             self._send(404, {"error": "not_found"})
             return
@@ -347,7 +345,7 @@ class _Handler(BaseHTTPRequestHandler):
             },
         )
 
-    def do_POST(self) -> None:  # noqa: N802
+    def do_POST(self) -> None:
         if not self.bridge.authorized(self.headers.get("X-CTRLRun-Token")):
             self._send(401, {"error": "unauthorized"})
             return

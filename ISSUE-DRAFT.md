@@ -55,8 +55,23 @@ whatever channel the session is bound to.
 
 ### Evidence
 
-_(fill in from a live run before filing: host version, the gated tool, the refusal the
-provider produced at step 3, and the call the host made anyway.)_
+**Still missing the one run that proves it, and that is deliberate.** The provider is verified
+on OpenClaw 2026.9.4 for three of the four decision paths, each on a real agent turn:
+
+```
+read  deny/denied      openclaw-gateway   # policy did not name the action
+read  allow/committed  openclaw-gateway   # allowed, ran, after_tool_call reported
+read  approve/denied   openclaw-gateway   # needed a human, none attached, failed closed
+```
+
+The fourth path, an approval a human **grants**, cannot be produced headlessly: with no
+approval-capable client attached the Gateway resolves the request in about 50ms as unresolved,
+and unresolved approvals always deny. So reaching step 3 needs a person at a TUI or dashboard
+answering `allow-once` while the provider's second pass refuses.
+
+Before filing, run that once with an interactive approver and paste: the host version, the
+`onResolution` decision, the provider's refusal, and the `after_tool_call` showing the host
+executed anyway.
 
 ### Alternatives considered
 

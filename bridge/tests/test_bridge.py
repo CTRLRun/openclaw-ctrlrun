@@ -8,8 +8,6 @@ nobody checked.
 
 from __future__ import annotations
 
-import threading
-
 import pytest
 
 from ctrlrun_openclaw.bridge import Bridge
@@ -55,7 +53,9 @@ def test_an_unknown_tool_is_denied_because_nothing_is_default_allow(bridge):
 
 
 def test_a_call_past_the_ceiling_is_denied_by_the_rule_that_refused_it(bridge):
-    answer = bridge.decide({"tool": "stripe.refund", "params": {"payment_id": "p", "amount": 900_000}})
+    answer = bridge.decide(
+        {"tool": "stripe.refund", "params": {"payment_id": "p", "amount": 900_000}}
+    )
     assert answer["decision"] == "deny"
     assert answer["reason"].startswith("rule[")
 
@@ -64,7 +64,9 @@ def test_once_stays_once(bridge):
     first = bridge.decide({"tool": "stripe.refund", "params": {"payment_id": "p1", "amount": 1000}})
     assert first["decision"] == "allow"
     _report(bridge, first)
-    second = bridge.decide({"tool": "stripe.refund", "params": {"payment_id": "p1", "amount": 1000}})
+    second = bridge.decide(
+        {"tool": "stripe.refund", "params": {"payment_id": "p1", "amount": 1000}}
+    )
     assert second["decision"] == "deny"
     assert second["reason"] == "duplicate_effect:committed"
     assert second["detail"]["effectKey"] == "refund:p1"
@@ -93,7 +95,9 @@ def _await_ambiguous(bridge: Bridge, params: dict, tries: int = 20) -> dict:
 
 
 def test_an_approval_is_raised_then_granted_through_the_hosts_own_prompt(bridge):
-    answer = bridge.decide({"tool": "stripe.refund", "params": {"payment_id": "p3", "amount": 200_000}})
+    answer = bridge.decide(
+        {"tool": "stripe.refund", "params": {"payment_id": "p3", "amount": 200_000}}
+    )
     assert answer["decision"] == "approval"
     assert answer["requestId"].startswith("apr_")
     assert answer["detail"]["action"] == "stripe.refund"
@@ -111,7 +115,9 @@ def test_an_approval_is_raised_then_granted_through_the_hosts_own_prompt(bridge)
 
 
 def test_a_denied_approval_does_not_run_the_tool(bridge):
-    answer = bridge.decide({"tool": "stripe.refund", "params": {"payment_id": "p4", "amount": 200_000}})
+    answer = bridge.decide(
+        {"tool": "stripe.refund", "params": {"payment_id": "p4", "amount": 200_000}}
+    )
     assert answer["decision"] == "approval"
     resumed = bridge.resolve({"callId": answer["callId"], "decision": "deny"})
     assert resumed["decision"] == "deny"
@@ -119,7 +125,9 @@ def test_a_denied_approval_does_not_run_the_tool(bridge):
 
 def test_an_unresolved_host_approval_denies(bridge):
     """`timeout` and `cancelled` are not grants. The host denies on them too."""
-    answer = bridge.decide({"tool": "stripe.refund", "params": {"payment_id": "p5", "amount": 200_000}})
+    answer = bridge.decide(
+        {"tool": "stripe.refund", "params": {"payment_id": "p5", "amount": 200_000}}
+    )
     resumed = bridge.resolve({"callId": answer["callId"], "decision": "timeout"})
     assert resumed["decision"] == "deny"
 

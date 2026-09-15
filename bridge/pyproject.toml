@@ -37,3 +37,24 @@ dev = ["pytest>=8", "mypy>=2.3", "ruff>=0.16"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ctrlrun_openclaw"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+force-exclude = true
+
+# The kernel's selection, so an adapter reads the way the kernel reads. ANN is left out: this
+# package is a process boundary whose handlers are dispatched by `http.server` with signatures
+# it does not own.
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+# `BaseHTTPRequestHandler` names the methods; they are not this file's to rename, and `fmt`
+# shadowing a builtin is that base class's signature too.
+"src/ctrlrun_openclaw/bridge.py" = ["N802", "A002"]
+# Same reason the kernel exempts its own `errors.py`: this refusal sits beside `NotExecuted`,
+# `DuplicateEffect` and `AmbiguousEffect` in an operator's `except` clause, and
+# `OutcomeNotReportedError` next to those would be the odd one out.
+"src/ctrlrun_openclaw/call.py" = ["N818"]
