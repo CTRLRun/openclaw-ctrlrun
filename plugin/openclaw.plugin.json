@@ -2,7 +2,9 @@
   "id": "ctrlrun",
   "name": "CTRLRun",
   "description": "Checks every tool call against a CTRLRun policy before it runs, and records what happened after.",
-  "categories": ["security"],
+  "categories": [
+    "security"
+  ],
   "activation": {
     "onStartup": true
   },
@@ -31,14 +33,25 @@
       },
       "approvalMode": {
         "type": "string",
-        "enum": ["native", "block-and-retry"],
+        "enum": [
+          "native",
+          "block-and-retry"
+        ],
         "default": "native",
         "description": "native raises OpenClaw's approval prompt; block-and-retry refuses and names the request for 'ctrlrun approve'."
       },
       "tools": {
         "type": "array",
-        "items": { "type": "string" },
+        "items": {
+          "type": "string"
+        },
         "description": "Canonical OpenClaw tool ids to gate, such as exec or apply_patch. Omit to gate every tool."
+      },
+      "approvalTimeoutMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 600000,
+        "description": "How long the operator has to answer a held approval. Unresolved approvals always deny."
       }
     }
   }

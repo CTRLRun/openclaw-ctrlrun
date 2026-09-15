@@ -21,6 +21,7 @@ export type HookResult = {
     title: string;
     description: string;
     severity?: "info" | "warning" | "critical";
+    timeoutMs?: number;
     allowedDecisions?: ReadonlyArray<"allow-once" | "allow-always" | "deny">;
   };
 };
@@ -59,7 +60,7 @@ export function describe(detail: Answer["detail"], requestId?: string): string {
  */
 export function toHookResult(
   answer: Answer,
-  options: { toolName: string; approvalMode: ApprovalMode },
+  options: { toolName: string; approvalMode: ApprovalMode; approvalTimeoutMs?: number },
 ): HookResult {
   if (answer.decision === "allow") return {};
 
@@ -82,6 +83,10 @@ export function toHookResult(
       description: describe(answer.detail, answer.requestId),
       severity: "warning",
       allowedDecisions: ["allow-once", "deny"],
+      // How long the operator has. Unresolved always denies, so this is the window in which
+      // a person can answer, not a grace period: too short and a policy that asks for a
+      // human is a policy that refuses.
+      ...(options.approvalTimeoutMs ? { timeoutMs: options.approvalTimeoutMs } : {}),
     },
   };
 }

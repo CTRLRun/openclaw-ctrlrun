@@ -33,6 +33,7 @@ type Config = {
   token?: string;
   timeoutMs?: number;
   approvalMode?: ApprovalMode;
+  approvalTimeoutMs?: number;
   tools?: string[];
 };
 
@@ -110,6 +111,7 @@ export default definePluginEntry({
         const result = toHookResult(answer, {
           toolName: event.toolName,
           approvalMode,
+          approvalTimeoutMs: config.approvalTimeoutMs,
         });
 
         if (answer.decision === "allow") {
