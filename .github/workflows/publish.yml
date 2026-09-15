@@ -3,21 +3,37 @@
 #
 # Publishing without a long-lived token.
 #
-# PyPI Trusted Publishing mints a short-lived credential from this workflow's OIDC identity,
-# so nothing here holds a secret and there is no token to leak, rotate or scope wrongly. That
-# matters here for a concrete reason: the first two publish attempts for this package failed
-# on tokens, one revoked and one scoped to a different project, and neither failure was
-# visible until the upload was refused.
+# Trusted publishing mints a short-lived credential from this workflow's OIDC identity, so
+# nothing here holds a secret and there is no token to leak, rotate or scope wrongly. That
+# matters here for a concrete reason: the first two PyPI attempts for this package failed on
+# tokens, one revoked and one scoped to a different project, and neither failure was visible
+# until the upload was refused.
 #
-# One manual step, once, before the first tag: on PyPI, add a *pending publisher* under
-# Account -> Publishing. A pending publisher can be created for a project that does not exist
-# yet, which is exactly this case.
+# It is also where npm is going. GitHub deprecated 2FA-bypass granular access tokens on
+# 2026-07-08: from early August 2026 they no longer skip 2FA for sensitive operations, and
+# around January 2027 they lose the ability to publish at all. Trusted publishing and staged
+# publishing with a human approval are the two routes that survive that.
 #
-#   PyPI project name:  ctrlrun-openclaw
-#   Owner:              CTRLRun
-#   Repository:         openclaw-ctrlrun
-#   Workflow:           publish.yml
-#   Environment:        pypi
+#   https://github.blog/changelog/2026-07-08-npm-install-time-security-and-gat-bypass2fa-deprecation/
+#
+# ── One-time setup, and the asymmetry between the two registries ──────────────────────────
+#
+# PyPI accepts a *pending publisher* for a project that does not exist yet, so it needed no
+# bootstrap. Already configured:
+#
+#   project ctrlrun-openclaw / CTRLRun / openclaw-ctrlrun / publish.yml / environment pypi
+#
+# npm cannot do that. A trusted publisher is configured on the package's settings page, which
+# only exists once the package does, so **the first npm publish must be interactive**:
+#
+#   cd plugin && npm publish --access public --otp=<six digits>
+#
+# After that one publish, on npmjs.com go to the package settings, "Trusted Publisher",
+# GitHub Actions, and enter:
+#
+#   repository CTRLRun/openclaw-ctrlrun / workflow publish.yml / environment npm
+#
+# From the next tag on, the npm job below publishes with no token at all.
 name: Publish
 
 on:
@@ -68,3 +84,54 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: bridge/dist
+
+  npm:
+    name: plugin to npm
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      # Trusted publishing needs npm >= 11.5.1 on Node >= 22.14.0. Node 24 ships npm 11.x.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: npm is new enough to publish over OIDC
+        run: |
+          node --version
+          npm --version
+          node -e "const [a,b,c]=process.versions.node.split('.').map(Number);if(a<22||(a===22&&b<14))throw new Error('node too old for trusted publishing')"
+
+      - name: The tag matches the version in package.json
+        if: startsWith(github.ref, 'refs/tags/')
+        working-directory: plugin
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          HAVE=$(node -p "require('./package.json').version")
+          echo "tag=$TAG declared=$HAVE"
+          test "$TAG" = "$HAVE"
+
+      - name: Build and test
+        working-directory: plugin
+        run: |
+          npx --yes esbuild@0.25.0 index.ts bridge-client.ts decision.ts decision.test.ts \
+            --format=esm --platform=node --target=node24 --outdir=dist
+          node --test dist/decision.test.js
+
+      # The host refuses a TypeScript entry for a packaged install, so a tarball without
+      # dist/index.js is one nobody can install. Checked before the upload, not after.
+      - name: The tarball carries the compiled entry the host requires
+        working-directory: plugin
+        run: |
+          npm pack --pack-destination /tmp
+          tar tzf /tmp/ctrlrun-openclaw-*.tgz | tee /tmp/files
+          grep -q 'package/dist/index.js' /tmp/files
+          grep -q 'package/openclaw.plugin.json' /tmp/files
+
+      # No NODE_AUTH_TOKEN. The OIDC identity above is the credential.
+      - name: Publish
+        working-directory: plugin
+        run: npm publish --access public
