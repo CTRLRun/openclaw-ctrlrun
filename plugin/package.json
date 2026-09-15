@@ -4,7 +4,7 @@
   "description": "CTRLRun execution safety for OpenClaw: every tool call checked before it runs, and recorded after.",
   "repository": {
     "type": "git",
-    "url": "https://github.com/CTRLRun/openclaw-ctrlrun"
+    "url": "git+https://github.com/CTRLRun/openclaw-ctrlrun.git"
   },
   "license": "Apache-2.0",
   "type": "module",
@@ -47,5 +47,8 @@
   },
   "devDependencies": {
     "esbuild": "^0.25.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
