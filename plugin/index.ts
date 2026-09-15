@@ -26,7 +26,7 @@
 import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 
 import { BridgeClient, BridgeUnreachable, type HostDecision } from "./bridge-client.js";
-import { type ApprovalMode, outcomeOf, toHookResult } from "./decision.js";
+import { type ApprovalMode, outcomeOf, toHookResult, unreachable } from "./decision.js";
 
 type Config = {
   url?: string;
@@ -79,8 +79,9 @@ export default definePluginEntry({
           "approvals.",
       );
     }
+    const bridgeUrl = config.url ?? DEFAULTS.url;
     const client = new BridgeClient({
-      url: config.url ?? DEFAULTS.url,
+      url: bridgeUrl,
       token,
       timeoutMs: config.timeoutMs ?? DEFAULTS.timeoutMs,
     });
@@ -95,17 +96,22 @@ export default definePluginEntry({
     api.on(
       "before_tool_call",
       async (event, ctx) => {
-        // A throw here fails closed: the host blocks the tool call. That is the correct
-        // behaviour when the decision point is unreachable, and it is the host's default,
-        // so BridgeUnreachable is deliberately not caught.
-        const answer = await client.decide({
-          tool: event.toolName,
-          params: (event.params ?? {}) as Record<string, unknown>,
-          agentId: ctx?.agentId,
-          sessionId: ctx?.sessionId,
-          runId: ctx?.runId ?? event.runId,
-          toolCallId: event.toolCallId,
-        });
+        let answer;
+        try {
+          answer = await client.decide({
+            tool: event.toolName,
+            params: (event.params ?? {}) as Record<string, unknown>,
+            agentId: ctx?.agentId,
+            sessionId: ctx?.sessionId,
+            runId: ctx?.runId ?? event.runId,
+            toolCallId: event.toolCallId,
+          });
+        } catch (error) {
+          // Blocked either way: a thrown hook fails closed too. Caught so the refusal can
+          // say what is wrong instead of arriving as a generic hook failure.
+          if (error instanceof BridgeUnreachable) return unreachable(bridgeUrl);
+          throw error;
+        }
 
         const key = keyOf(event.toolCallId, ctx?.runId ?? event.runId, event.toolName);
         const result = toHookResult(answer, {

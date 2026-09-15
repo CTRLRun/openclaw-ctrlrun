@@ -9,7 +9,7 @@
 import assert from "node:assert/strict";
 import { describe as suite, test } from "node:test";
 
-import { explain, outcomeOf, toHookResult } from "./decision.js";
+import { explain, outcomeOf, toHookResult, unreachable } from "./decision.js";
 
 const opts = { toolName: "exec", approvalMode: "native" as const };
 
@@ -114,6 +114,26 @@ suite("outcomeOf", () => {
 
   test("a long error is bounded so a receipt cannot be flooded", () => {
     assert.equal(outcomeOf({ error: "x".repeat(5000) }).detail!.length, 500);
+  });
+});
+
+suite("unreachable", () => {
+  test("a missing bridge blocks, because an ungated call is not an allowed one", () => {
+    const r = unreachable("http://127.0.0.1:8931");
+    assert.equal(r.block, true);
+  });
+
+  test("the refusal names the address, the command, and the way out", () => {
+    const r = unreachable("http://127.0.0.1:8931");
+    assert.match(r.blockReason!, /127\.0\.0\.1:8931/);
+    assert.match(r.blockReason!, /ctrlrun-openclaw-bridge/);
+    assert.match(r.blockReason!, /pip install ctrlrun-openclaw/);
+    assert.match(r.blockReason!, /disable the ctrlrun plugin/);
+  });
+
+  test("it never returns an approval, which would hand the decision to a human "
+     + "who has no policy behind them", () => {
+    assert.equal(unreachable("http://x").requireApproval, undefined);
   });
 });
 

@@ -51,6 +51,28 @@ export function describe(detail: Answer["detail"], requestId?: string): string {
 }
 
 /**
+ * What to do when the bridge cannot be reached.
+ *
+ * Throwing would also be safe: this hook fails closed, so the host blocks the call either
+ * way. Blocking explicitly is better because the reason survives. A thrown hook gives the
+ * model a generic refusal, and an operator whose every tool call is suddenly blocked has
+ * nothing to act on. This says which process is missing and how to start it.
+ *
+ * The failure mode this exists for is the quiet one: a plugin installed, no bridge running,
+ * and a person who believes their agent is gated. Blocked-and-loud is the only honest state.
+ */
+export function unreachable(url: string): HookResult {
+  return {
+    block: true,
+    blockReason:
+      `CTRLRun blocked this call: its bridge is not answering at ${url}, so no policy ` +
+      `could be applied and nothing may run. Start it with 'ctrlrun-openclaw-bridge ` +
+      `--agent <name>', or install it with 'pip install ctrlrun-openclaw'. To stop gating ` +
+      `tool calls entirely, disable the ctrlrun plugin.`,
+  };
+}
+
+/**
  * The bridge's answer as an OpenClaw `before_tool_call` result.
  *
  * `approval` under `block-and-retry` becomes a refusal rather than a prompt. That mode exists

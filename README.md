@@ -201,6 +201,10 @@ configure an identity provider in the policy, it answers instead and wins.
   are added to an embedded agent run without the wrapper that carries `before_tool_call`, so
   this plugin does not see them. Use `ctrlrun gateway` in front of the MCP server for those,
   which is the surface it was written for; the two are complementary rather than overlapping.
+- **A missing bridge blocks everything, loudly.** If the bridge is not answering, every gated
+  tool call is refused with a reason naming the address, the command that starts it, and how
+  to turn the gate off. Verified on a live host: a run with the bridge down executed **no**
+  tools, where the same run with it up executed 40. An ungated call is not an allowed one.
 - **The bridge is Python.** OpenClaw is a Node install and this asks for a second runtime.
   That is the price of the guarantees living in one store with one receipt chain, rather than
   a second implementation of them that can be wrong in a second way.
