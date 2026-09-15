@@ -1,0 +1,51 @@
+{
+  "name": "@ctrlrun/openclaw",
+  "version": "0.1.0",
+  "description": "CTRLRun execution safety for OpenClaw: every tool call checked before it runs, and recorded after.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CTRLRun/openclaw-ctrlrun"
+  },
+  "license": "Apache-2.0",
+  "type": "module",
+  "peerDependencies": {
+    "openclaw": ">=2026.9.4"
+  },
+  "peerDependenciesMeta": {
+    "openclaw": {
+      "optional": true
+    }
+  },
+  "openclaw": {
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "install": {
+      "clawhubSpec": "clawhub:@ctrlrun/openclaw",
+      "npmSpec": "@ctrlrun/openclaw",
+      "defaultChoice": "clawhub",
+      "minHostVersion": ">=2026.9.4"
+    },
+    "compat": {
+      "pluginApi": ">=2026.9.4"
+    },
+    "build": {
+      "openclawVersion": "2026.9.4",
+      "bundledDist": true
+    }
+  },
+  "files": [
+    "dist/index.js",
+    "dist/bridge-client.js",
+    "dist/decision.js",
+    "openclaw.plugin.json",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "esbuild index.ts bridge-client.ts decision.ts --format=esm --platform=node --target=node24 --outdir=dist",
+    "test": "esbuild index.ts bridge-client.ts decision.ts decision.test.ts --format=esm --platform=node --target=node24 --outdir=dist && node --test dist/decision.test.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "id": "ctrlrun",
+  "name": "CTRLRun",
+  "description": "Checks every tool call against a CTRLRun policy before it runs, and records what happened after.",
+  "categories": ["security"],
+  "activation": {
+    "onStartup": true
+  },
+  "contracts": {
+    "tools": []
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "Where the CTRLRun bridge is listening. Loopback.",
+        "default": "http://127.0.0.1:8931"
+      },
+      "token": {
+        "type": "string",
+        "description": "The bridge's shared secret. Falls back to $CTRLRUN_OPENCLAW_TOKEN."
+      },
+      "timeoutMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 15000,
+        "default": 10000,
+        "description": "Kept under before_tool_call's 15s fail-closed budget so a refusal explains itself."
+      },
+      "approvalMode": {
+        "type": "string",
+        "enum": ["native", "block-and-retry"],
+        "default": "native",
+        "description": "native raises OpenClaw's approval prompt; block-and-retry refuses and names the request for 'ctrlrun approve'."
+      },
+      "tools": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Canonical OpenClaw tool ids to gate, such as exec or apply_patch. Omit to gate every tool."
+      }
+    }
+  }
+}
