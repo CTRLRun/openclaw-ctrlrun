@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ctrlrun-openclaw"
-version = "0.1.0"
+version = "0.1.1"
 description = "CTRLRun's execution safety layer for OpenClaw, as a before_tool_call gate."
 readme = "README.md"
 requires-python = ">=3.11"

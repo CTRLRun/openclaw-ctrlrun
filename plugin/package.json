@@ -1,6 +1,6 @@
 {
   "name": "@ctrlrun/openclaw",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CTRLRun execution safety for OpenClaw: every tool call checked before it runs, and recorded after.",
   "repository": {
     "type": "git",
